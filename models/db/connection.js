@@ -1,6 +1,12 @@
 const mongoose = require('mongoose')
 
-mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1/Test')
+//db.createUser({user:"test",pwd:"test123",roles:[{role:"dbOwner",db:"nodejs-example"}]});
+const options = {
+  user : process.env.MONGODB_USERNAME || "",
+  pass : process.env.MONGODB_PASSWORD || ""
+};
+
+mongoose.connect(process.env.MONGO_URI || 'mongodb://127.0.0.1/nodejs-example', options)
 mongoose.Promise = global.Promise
 
 const db = mongoose.connection
