@@ -1,0 +1,46 @@
+# generic Banzai Cloud `spotguide` for a nodejs application
+pipeline:
+
+# this step creates a Kubernetes cluster on a cloud provider
+  create_cluster:
+    image: banzaicloud/plugin-pipeline-client:0.3.0
+    cluster_name: "nodejs-example-cluster2"
+    cluster_provider: "google"
+    google_project: "gabo-project"
+    google_node_count: "2"
+    google_gke_version: "1.9.6-gke.1"
+    secrets: [plugin_endpoint, plugin_token]
+
+# this step clones the project to the Kubernetes cluster
+  remote_checkout:
+    image: banzaicloud/plugin-k8s-proxy:dev-c9e67e2
+    original_image: plugins/git
+
+# this step builds and uploads the application image to the image registry (docker)
+  build:
+    image: banzaicloud/plugin-k8s-proxy:dev-c9e67e2
+    original_image: plugins/docker
+    dockerfile: Dockerfile
+    repo: banzaicloud/nodejs-example
+    secrets: [plugin_endpoint, plugin_token, plugin_username, plugin_password]
+
+  deploy_database:
+    image: banzaicloud/plugin-pipeline-client:0.3.0
+    deployment_name: "stable/mongodb"
+    deployment_release_name: "nodejs-example-db"
+    deployment_values:
+        mongodbUsername: "{{ .PLUGIN_MONGODB_USERNAME }}"
+        mongodbPassword: "{{ .PLUGIN_MONGODB_PASSWORD }}"
+    secrets: [plugin_endpoint, plugin_token, plugin_mongodb_username, plugin_mongodb_password]
+
+# this step deploys the application to the Kubernetes cluster
+  deploy_application:
+    image: banzaicloud/plugin-pipeline-client:0.3.0
+    deployment_name: "banzaicloud-incubator/nodejs-example"
+    deployment_release_name: "nodejs-example"
+    deployment_values:
+      image:
+        repository: "banzaicloud/nodejs-example"
+        tag: "latest"
+    waiting_for: 
+    secrets: [plugin_endpoint, plugin_token]
