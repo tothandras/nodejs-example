@@ -1,0 +1,76 @@
+pipeline:
+
+# this step creates a Kubernetes cluster on a cloud provider
+  create_cluster:
+    image: banzaicloud/plugin-pipeline-client:nodejs
+    pull: true
+    cluster_name: "{{cluster-name}}"
+    cluster_provider: "google"
+    google_project: "{{your-project-id}}"
+    google_node_count: "2"
+    google_gke_version: "1.9.6-gke.1"
+    secrets: [plugin_endpoint, plugin_token, plugin_secret_id]
+
+# this step clones the project to the Kubernetes cluster
+  remote_checkout:
+    image: banzaicloud/plugin-k8s-proxy:nodejs
+    original_image: plugins/git
+
+# this step builds and uploads the application image to the image registry (docker)
+  build_container:
+    image: banzaicloud/plugin-k8s-proxy:nodejs
+    original_image: plugins/docker
+    dockerfile: Dockerfile
+    repo: banzaicloud/nodejs-example
+    tags: "{{ printf \"dev-%s\" (.DRONE_COMMIT_SHA | trunc 7) }}"
+    log: debug
+    secrets: [plugin_endpoint, plugin_token, plugin_username, plugin_password]
+    group: test123
+    # when:
+    #   event: tag
+
+  deploy_monitoring:
+    image: banzaicloud/plugin-pipeline-client:nodejs
+    deployment_name: "banzaicloud-stable/pipeline-cluster-monitor"
+    deployment_release_name: "monitor"
+
+    secrets: [plugin_endpoint, plugin_token]
+
+  deploy_database:
+    image: banzaicloud/plugin-pipeline-client:nodejs
+    deployment_name: "stable/mongodb"
+    deployment_release_name: "nodejs-db"
+    deployment_values:
+        mongodbUsername: "{{ .PLUGIN_MONGODB_USERNAME }}"
+        mongodbPassword: "{{ .PLUGIN_MONGODB_PASSWORD }}"
+        mongodbDatabase: your-database
+    secrets: [plugin_endpoint, plugin_token, plugin_mongodb_username, plugin_mongodb_password]
+
+# this step deploys the application to the Kubernetes cluster
+  deploy_application:
+    image: banzaicloud/plugin-pipeline-client:nodejs
+    deployment_name: "banzaicloud-stable/nodejs"
+    deployment_release_name: "nodejs-example"
+    deployment_values:
+      image:
+        repository: "banzaicloud/nodejs-example"
+        tag: "{{ printf \"dev-%s\" (.DRONE_COMMIT_SHA | trunc 7) }}"
+      podAnnotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/path: "/metrics"
+        prometheus.io/port: "9999"
+      env:
+        - name: MONGODB_USERNAME
+          value: "{{ .PLUGIN_MONGODB_USERNAME }}"
+        - name: MONGODB_URI
+          value: "mongodb://nodejs-db-mongodb/your-database"
+      secret:
+          MONGODB_PASSWORD: "{{ .PLUGIN_MONGODB_PASSWORD | b64enc }}"
+      envFrom:
+        - secretRef:
+            name: nodejs-example
+      service:
+        type: LoadBalancer
+    # when:
+    #   event: tag
+    secrets: [plugin_endpoint, plugin_token, plugin_mongodb_username, plugin_mongodb_password]
