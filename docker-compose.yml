@@ -1,9 +1,8 @@
-# Use postgres/example user/password credentials
-version: '3.1'
-
+version: '3.6'
 services:
-  mongodb:
+  db:
     image: bitnami/mongodb
+    restart: always
     container_name: mongodb
     ports:
       - 27017:27017
@@ -12,14 +11,7 @@ services:
       interval: 10s
       timeout: 10s
       retries: 5
-
-  prometheus:
-    image: prom/prometheus
-    container_name: prometheus
-    ports:
-      - 9090:9090
-    volumes: 
-      - "./prometheus-data:/prometheus-data"
-    command: 
-      - "--web.enable-lifecycle" 
-      - "--config.file=/prometheus-data/prometheus.yml"
+    environment:
+      - MONGODB_USERNAME=username
+      - MONGODB_PASSWORD=password
+      - MONGODB_DATABASE=nodejs-example

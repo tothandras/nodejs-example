@@ -1,9 +1,30 @@
-FROM node:8.9.4
+ARG NODE_VERSION=10.6.0
 
-COPY package.json package.json
-RUN npm install
+###
+# 1. Dependencies
+###
 
-# Add your source files
+# Install dependencies independently not to expose NPM_TOKEN in the build history
+# https://docs.docker.com/engine/userguide/eng-image/multistage-build/
+FROM node:${NODE_VERSION}-alpine as dependencies
+WORKDIR /home/node/
+
+RUN apk --no-cache add \
+  g++ gcc libgcc libstdc++ linux-headers make python
+RUN npm install --global npm
+
+COPY package.json *package-lock.json ./
+RUN npm install --global node-gyp
+RUN npm ci
+
+###
+# 2. Application
+###
+
+FROM node:${NODE_VERSION}-alpine
+WORKDIR /home/node/
+
+COPY --from=dependencies node_modules node_modules
 COPY . .
 
 ENV NODE_ENV production
@@ -16,4 +37,4 @@ ENV MONGODB_URI ""
 
 EXPOSE 3001 9999
 
-CMD ["node", "index.js", "--use-strict"]
+CMD ["node", ".", "--use-strict"]

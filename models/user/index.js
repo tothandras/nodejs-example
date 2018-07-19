@@ -1,1 +1,1 @@
-module.exports = require('./userSchema')
+module.exports = require('./user')

@@ -9,5 +9,7 @@ node_modules
 # Misc
 .env
 
-# Test coverage report
+# Test files
 coverage
+**/*.spec.js
+**/test
