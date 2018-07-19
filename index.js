@@ -1,3 +1,12 @@
+const logger = require('./common/logger')
+const catchErrors = require('./common/catch-errors')
+
+// catch unhandled exceptions
+catchErrors()
+
+// intercept console calls & use custom JSON logger
+logger.interceptConsole()
+
 const semver = require('semver')
 const pkg = require('./package.json')
 

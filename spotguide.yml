@@ -1,0 +1,74 @@
+resources:
+  sumCpu: 1
+  sumMem: 1
+  sameSize: true
+  onDemandPct: 100
+  minNodes: 1
+  maxNodes: 1
+
+options:
+  - name: mongodb_database_name
+    type: string
+    label: "Database Name"
+    info: "Specified mongodb database name"
+    default: "database1"
+    key: mongodb.database.name
+
+  - name: mongodb_database_username
+    type: string
+    label: "Database User Name"
+    default: "your-user-name"
+    info: "Specified username to access to specified database"
+    $ref: "#/secrets/mongodb-credential/password/username"
+
+  - name: mongodb_database_password
+    type: password
+    label: "Database Password"
+    info: "Specified username to access to specified database"
+    $ref: "#/secrets/mongodb-credential/password/password"
+
+  - name: logging
+    type: boolean
+    label: "Logging support"
+    info: "Enable/Disable central and unified logging"
+    default: "true"
+    readonly: true
+    key: logging.enabled
+
+  - name: monitoring
+    type: boolean
+    label: "Monitoring support"
+    info: "Enable/Disable cluster monitoring"
+    default: "true"
+    readonly: true
+    key: monitoring.enabled
+
+secrets:
+  #-> (ReleaseName)-mongodb-credential
+  mongodb-credential:
+    password:
+      username: banzai
+      password: password
+
+depends:
+  - monitor:
+      info: Monitoring
+      type: crd
+      values: 
+          - prometheuses.monitoring.coreos.com
+          - servicemonitors.monitoring.coreos.com
+          - alertmanagers.monitoring.coreos.com
+      namespace: banzai-system
+      charts:
+        - name: pipeline-cluster-monitor
+#          repository: alias:banzaicloud-stable
+          version: 0.0.1
+
+  - logging:
+      info: Logging
+      type: chart
+      namespace: banzai-system
+      charts:
+        - name: pipeline-cluster-log
+#          repository: alias:banzaicloud-stable
+          version: 0.0.1

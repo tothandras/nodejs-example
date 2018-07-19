@@ -15,3 +15,15 @@ services:
       - MONGODB_USERNAME=username
       - MONGODB_PASSWORD=password
       - MONGODB_DATABASE=nodejs-example
+
+  prometheus:
+    image: prom/prometheus
+    restart: always
+    container_name: prometheus
+    ports:
+      - 9090:9090
+    volumes: 
+      - "./prometheus-data:/prometheus-data"
+    command: 
+      - "--web.enable-lifecycle" 
+      - "--config.file=/prometheus-data/prometheus.yml"
